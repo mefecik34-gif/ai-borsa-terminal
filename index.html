@@ -1,85 +1,1807 @@
-      },
-      body: JSON.stringify({
-        message: prompt
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error ||
-        "API isteği başarısız oldu."
-      );
-    }
-
-    const result =
-      data?.reply ||
-      data?.answer ||
-      "AI yanıt oluşturamadı.";
-
-    const parsed = parseAI(result);
-
-    $("decision").textContent = result;
-
-    const s = get(selected);
-
-    $("signal").textContent = parsed.decision;
-    $("signal").className =
-      "signal " + parsed.decision;
-
-    if (parsed.decision === "AL") {
-      setStatus(
-        "<b>🤖 AI KARARI:</b> AL — Demo analiz tamamlandı.",
-        "ok"
-      );
-    } else if (parsed.decision === "SAT") {
-      setStatus(
-        "<b>🤖 AI KARARI:</b> SAT — Demo analiz tamamlandı.",
-        "warn"
-      );
-    } else {
-      setStatus(
-        "<b>🤖 AI KARARI:</b> TUT — Demo analiz tamamlandı."
-      );
-    }
-
-    $("news").innerHTML = `
-      <div class="news">
-        <b>🤖 Gemini AI Analizi — ${s.symbol}</b>
-        <small>${result.replace(/\n/g, "<br>")}</small>
-      </div>
-
-      <div class="news">
-        <b>⚠️ Demo Uyarısı</b>
-        <small>
-          Bu analiz yalnızca demo amaçlıdır ve yatırım tavsiyesi değildir.
-        </small>
-      </div>
-    `;
-
-  } catch (error) {
-    console.error("AI API Hatası:", error);
-
-    $("decision").textContent =
-      "AI bağlantısı kurulamadı: " +
-      error.message;
-
-    setStatus(
-      "<b>❌ AI Hatası:</b> " +
-      error.message +
-      "<br><small>Gemini API bağlantısını ve Vercel ayarlarını kontrol et.</small>",
-      "warn"
-    );
-
-  } finally {
-    aiRunning = false;
-
-    $("ai").classList.remove("running");
-
-    $("ai").textContent =
-      "🤖 AI ANALİZİ YAP";
-
-    render();
-  }
+<!DOCTYPE html><html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06080d">
+<title>AI Borsa Terminali</title><style>
+:root{
+--bg:#06080d;
+--panel:#0d121a;
+--panel2:#111923;
+--line:#202a36;
+--text:#eef3f8;
+--muted:#8996a6;
+--green:#19d18d;
+--red:#f05260;
+--blue:#4b8dff;
+--gold:#f3bd4d
 }
+
+*{box-sizing:border-box}
+
+html,body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:Inter,Arial,sans-serif
+}
+
+body{padding-bottom:78px}
+
+button,input{
+font:inherit
+}
+
+button{
+cursor:pointer
+}
+
+.top{
+height:58px;
+padding:0 14px;
+display:flex;
+align-items:center;
+gap:10px;
+background:#090c12;
+border-bottom:1px solid var(--line);
+position:sticky;
+top:0;
+z-index:20
+}
+
+.logo{
+font-size:17px;
+font-weight:800;
+white-space:nowrap
+}
+
+.logo span{
+color:var(--green)
+}
+
+.search{
+min-width:0;
+flex:1;
+background:var(--panel);
+border:1px solid var(--line);
+color:#fff;
+border-radius:8px;
+padding:9px 10px;
+outline:0
+}
+
+.live{
+font-size:11px;
+color:var(--green);
+font-weight:700;
+white-space:nowrap
+}
+
+.markets{
+display:flex;
+gap:7px;
+overflow:auto;
+padding:10px 12px;
+background:#080b10;
+border-bottom:1px solid var(--line)
+}
+
+.market{
+border:1px solid var(--line);
+background:var(--panel);
+color:#aeb9c7;
+border-radius:7px;
+padding:8px 12px;
+white-space:nowrap
+}
+
+.market.active{
+background:#1a2b40;
+color:#fff;
+border-color:#355171
+}
+
+main{
+max-width:1200px;
+margin:auto;
+padding:12px
+}
+
+.ticker{
+display:flex;
+gap:8px;
+overflow:auto;
+margin-bottom:12px
+}
+
+.tick{
+min-width:130px;
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:9px;
+padding:10px
+}
+
+.tick b{
+display:block;
+margin-bottom:5px
+}
+
+.up{color:var(--green)}
+.down{color:var(--red)}
+
+.grid{
+display:grid;
+grid-template-columns:minmax(0,1fr) 310px;
+gap:12px
+}
+
+.panel{
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:10px;
+overflow:hidden;
+margin-bottom:12px
+}
+
+.head{
+padding:12px 13px;
+border-bottom:1px solid var(--line);
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px
+}
+
+.head h2{
+font-size:15px;
+margin:0
+}
+
+.muted{
+font-size:11px;
+color:var(--muted);
+margin-top:4px
+}
+
+.tools{
+display:flex;
+gap:5px
+}
+
+.tool{
+background:var(--panel2);
+border:1px solid var(--line);
+color:#cbd5e1;
+border-radius:6px;
+padding:7px 9px
+}
+
+.tool.active{
+background:#273b55;
+color:#fff
+}
+
+.chart{
+height:350px;
+padding:6px
+}
+
+.chart canvas{
+width:100%;
+height:100%;
+display:block
+}
+
+.actions{
+padding:11px;
+border-top:1px solid var(--line);
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:7px
+}
+
+.actions button{
+border:0;
+border-radius:7px;
+padding:11px;
+color:#fff;
+font-weight:800
+}
+
+.buy{background:#0d9e6d}
+.sell{background:#c92f3d}
+
+.ai{
+grid-column:1/-1;
+background:#355d9b
+}
+
+.ai.running{
+background:#a77518
+}
+
+.reset{
+background:#27313e
+}
+
+.status{
+grid-column:1/-1;
+background:#101923;
+border:1px solid var(--line);
+border-radius:7px;
+padding:10px;
+color:#aeb9c7;
+font-size:12px
+}
+
+.status.ok{
+border-color:#0d9e6d;
+color:#d9fff0
+}
+
+.status.warn{
+border-color:#a77518;
+color:#ffe7ad
+}
+
+.signal{
+text-align:center;
+padding:14px;
+font-size:19px;
+font-weight:900
+}
+
+.AL{
+background:#0a2b21;
+color:var(--green)
+}
+
+.SAT{
+background:#34151a;
+color:#ff7480
+}
+
+.TUT{
+background:#302610;
+color:var(--gold)
+}
+
+.metrics{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:7px;
+padding:10px
+}
+
+.metric{
+background:var(--panel2);
+border:1px solid var(--line);
+border-radius:7px;
+padding:10px
+}
+
+.metric small{
+display:block;
+color:var(--muted);
+margin-bottom:5px
+}
+
+.metric b{
+font-size:15px
+}
+
+.decision{
+padding:11px;
+border-bottom:1px solid var(--line);
+font-size:12px;
+line-height:1.5;
+white-space:pre-wrap
+}
+
+.log{
+max-height:300px;
+overflow:auto
+}
+
+.logitem{
+padding:10px;
+border-bottom:1px solid var(--line);
+font-size:12px
+}
+
+.logitem.al{
+border-left:3px solid var(--green)
+}
+
+.logitem.sat{
+border-left:3px solid var(--red)
+}
+
+.tablewrap{
+overflow:auto
+}
+
+.table{
+width:100%;
+border-collapse:collapse;
+min-width:560px
+}
+
+.table th,
+.table td{
+padding:10px;
+border-bottom:1px solid var(--line);
+text-align:left;
+white-space:nowrap
+}
+
+.table th{
+font-size:10px;
+color:var(--muted);
+text-transform:uppercase
+}
+
+.table tr:hover{
+background:#111923
+}
+
+.news{
+padding:11px;
+border-bottom:1px solid var(--line);
+font-size:12px;
+white-space:pre-wrap
+}
+
+.news small{
+display:block;
+color:var(--muted);
+margin-top:5px
+}
+
+.bottom{
+display:none
+}
+
+@media(max-width:800px){
+
+.top{
+padding:0 10px
+}
+
+.logo{
+font-size:15px
+}
+
+.live{
+display:none
+}
+
+.grid{
+grid-template-columns:1fr
+}
+
+.right{
+display:block
+}
+
+.chart{
+height:280px
+}
+
+.bottom{
+position:fixed;
+display:grid;
+grid-template-columns:repeat(4,1fr);
+bottom:0;
+left:0;
+right:0;
+height:64px;
+background:#0a0e14;
+border-top:1px solid var(--line);
+z-index:30;
+padding-bottom:env(safe-area-inset-bottom)
+}
+
+.bottom button{
+background:none;
+border:0;
+color:#8f9aaa;
+font-size:11px
+}
+
+.bottom button.active{
+color:#fff
+}
+
+.panel{
+border-radius:9px
+}
+
+.head{
+padding:11px
+}
+
+.ticker{
+margin-left:-2px;
+margin-right:-2px
+}
+
+.actions{
+position:sticky;
+bottom:64px;
+background:var(--panel);
+z-index:5
+}
+
+}
+
+@media(max-width:430px){
+
+main{
+padding:8px
+}
+
+.markets{
+padding:8px
+}
+
+.chart{
+height:250px
+}
+
+.tools .tool{
+padding:6px 7px
+}
+
+.titleText{
+max-width:180px
+}
+
+.actions button{
+padding:10px 7px;
+font-size:12px
+}
+
+}
+</style></head><body><header class="top"><div class="logo">
+Borsa <span>AI</span>
+</div><input
+id="search"
+class="search"
+placeholder="Hisse ara..."
+
+«»
+
+<div class="live">
+● GEMINI AI
+</div></header><nav class="markets"><button class="market active" data-market="BIST">
+🇹🇷 BIST
+</button><button class="market" data-market="NASDAQ">
+🇺🇸 NASDAQ
+</button><button class="market" data-market="NYSE">
+🇺🇸 NYSE
+</button></nav><main><div id="ticker" class="ticker"></div><div class="grid"><section><div class="panel"><div class="head"><div class="titleText"><h2 id="title">THYAO</h2><div id="meta" class="muted">
+BIST • Demo fiyat akışı
+</div></div><div class="tools"><button
+class="tool active"
+data-chart="line"
+
+«»
+
+Çizgi
+</button>
+
+<button
+class="tool"
+data-chart="candle"
+
+«»
+
+Mum
+</button>
+
+</div></div><div class="chart"><canvas id="chart"></canvas>
+
+</div><div class="actions"><button
+class="buy"
+id="buy"
+
+«»
+
+🟢 SANAL AL
+</button>
+
+<button
+class="sell"
+id="sell"
+
+«»
+
+🔴 SANAL SAT
+</button>
+
+<button
+class="ai"
+id="ai"
+
+«»
+
+🤖 GEMINI AI ANALİZİ
+</button>
+
+<button
+class="reset"
+id="reset"
+
+«»
+
+↺ SIFIRLA
+</button>
+
+<div
+id="status"
+class="status"
+>
+<b>Hazır.</b>
+Gemini AI analizini başlatabilirsin.
+</div></div></div><div class="panel"><div class="head"><div><h2>Piyasa Akışı</h2><div class="muted">
+Demo fiyatları otomatik hareket eder
+</div></div></div><div class="tablewrap"><table class="table"><thead><tr><th>Hisse</th>
+<th>Şirket</th>
+<th>Fiyat</th>
+<th>Değişim</th>
+<th>AI</th></tr></thead><tbody id="rows"></tbody></table></div></div></section><aside class="right"><div class="panel"><div
+id="signal"
+class="signal TUT"
+>
+TUT
+</div><div class="metrics"><div class="metric"><small>Portföy</small>
+
+<b id="portfolio">
+₺100.000
+</b></div><div class="metric"><small>Nakit</small>
+
+<b id="cash">
+₺100.000
+</b></div><div class="metric"><small>K/Z</small>
+
+<b id="pnl">
+₺0
+</b></div><div class="metric"><small>Pozisyon</small>
+
+<b id="qty">
+0
+</b></div></div></div><div class="panel"><div class="decision"><b>🤖 Gemini AI Kararı</b>
+
+<br><span id="decision">
+Henüz analiz yapılmadı.
+</span></div><div class="head"><h2>İşlem Günlüğü</h2></div><div id="log" class="log"><div class="logitem">
+Henüz işlem yok.
+</div></div></div><div class="panel"><div class="head"><h2>📰 Gemini AI Haber / Analiz</h2></div><div id="news"></div></div></aside></div></main><nav class="bottom"><button
+class="active"
+id="homeNav"
+
+«»
+
+⌂<br>
+Ana Sayfa
+</button>
+
+<button
+id="marketNav"
+
+«»
+
+▥<br>
+Piyasalar
+</button>
+
+<button
+id="aiNav"
+
+«»
+
+🤖<br>
+Gemini AI
+</button>
+
+<button
+id="resetNav"
+
+«»
+
+↺<br>
+Sıfırla
+</button>
+
+</nav><script>
+
+(function(){
+
+"use strict";
+
+const DATA={
+
+BIST:[
+
+["THYAO","Türk Hava Yolları",312.40,.014],
+
+["ASELS","Aselsan",178.20,.010],
+
+["TUPRS","Tüpraş",164.70,-.005],
+
+["AKBNK","Akbank",58.30,.004],
+
+["SISE","Şişecam",49.80,-.007],
+
+["BIMAS","BİM Mağazalar",612,.008]
+
+],
+
+NASDAQ:[
+
+["NVDA","NVIDIA",176.20,.020],
+
+["AAPL","Apple",210.40,.010],
+
+["MSFT","Microsoft",512.10,.007],
+
+["AMZN","Amazon",231.80,.005],
+
+["TSLA","Tesla",329.40,-.010]
+
+],
+
+NYSE:[
+
+["JPM","JPMorgan",298.20,.006],
+
+["WMT","Walmart",99.80,.004],
+
+["KO","Coca-Cola",71.40,.003],
+
+["DIS","Disney",118.10,-.005]
+
+]
+
+};
+
+let market="BIST";
+
+let selected="THYAO";
+
+let chartType="line";
+
+let aiRunning=false;
+
+let cash=100000;
+
+let positions={};
+
+let trades=[];
+
+const stocks={};
+
+Object.keys(DATA).forEach(m=>{
+
+stocks[m]=DATA[m].map(x=>({
+
+symbol:x[0],
+
+name:x[1],
+
+price:x[2],
+
+trend:x[3],
+
+history:[x[2]]
+
+}));
+
+});
+
+const $=id=>document.getElementById(id);
+
+const money=n=>
+
+new Intl.NumberFormat(
+
+"tr-TR",
+
+{
+
+style:"currency",
+
+currency:"TRY",
+
+maximumFractionDigits:2
+
+}
+
+).format(n);
+
+const all=()=>Object.values(stocks).flat();
+
+const get=s=>all().find(x=>x.symbol===s);
+
+const list=()=>stocks[market];
+
+const signal=s=>
+
+s.trend>.006
+
+?"AL"
+
+:s.trend<-.005
+
+?"SAT"
+
+:"TUT";
+
+function setStatus(text,type){
+
+$("status").innerHTML=text;
+
+$("status").className="status "+(type||"");
+
+}
+
+function portfolioValue(){
+
+return cash+
+
+Object.entries(positions)
+
+.reduce(
+
+(sum,[sym,qty])=>
+
+sum+qty*get(sym).price,
+
+0
+
+);
+
+}
+
+function render(){
+
+const s=get(selected);
+
+if(!s)return;
+
+$("title").textContent=
+
+s.symbol+" — "+s.name;
+
+$("meta").textContent=
+
+market+" • Demo fiyat akışı";
+
+$("ticker").innerHTML=
+
+list().map(x=>`
+
+<div class="tick">
+
+<b>${x.symbol}</b>
+
+${money(x.price)}
+
+<br>
+
+<small class="${x.trend>=0?"up":"down"}">
+
+${x.trend>=0?"+":""}
+
+${(x.trend*100).toFixed(2)}%
+
+</small>
+
+</div>
+
+`).join("");
+
+$("rows").innerHTML=
+
+list().map(x=>`
+
+<tr data-symbol="${x.symbol}">
+
+<td><b>${x.symbol}</b></td>
+
+<td>${x.name}</td>
+
+<td>${money(x.price)}</td>
+
+<td class="${x.trend>=0?"up":"down"}">
+
+${x.trend>=0?"+":""}
+
+${(x.trend*100).toFixed(2)}%
+
+</td>
+
+<td>${signal(x)}</td>
+
+</tr>
+
+`).join("");
+
+document
+
+.querySelectorAll("#rows tr")
+
+.forEach(row=>{
+
+row.onclick=()=>{
+
+selected=row.dataset.symbol;
+
+render();
+
+};
+
+});
+
+const total=portfolioValue();
+
+$("signal").textContent=signal(s);
+
+$("signal").className=
+
+"signal "+signal(s);
+
+$("qty").textContent=
+
+positions[selected]||0;
+
+$("cash").textContent=
+
+money(cash);
+
+$("portfolio").textContent=
+
+money(total);
+
+$("pnl").textContent=
+
+money(total-100000);
+
+$("log").innerHTML=
+
+trades.length
+
+?
+
+trades
+
+.slice()
+
+.reverse()
+
+.map(t=>`
+
+<div class="logitem ${t.action==="AL"?"al":"sat"}">
+
+<b>
+
+${t.action==="AL"?"🟢 AL":"🔴 SAT"}
+
+— ${t.symbol}
+
+</b>
+
+<br>
+
+${t.qty} adet × ${money(t.price)}
+
+<br>
+
+<small>
+
+${t.reason}
+
+<br>
+
+${t.time}
+
+</small>
+
+</div>
+
+`).join("")
+
+:
+
+"<div class='logitem'>Henüz işlem yok.</div>";
+
+$("news").innerHTML=`
+
+<div class="news">
+
+<b>${s.name}</b>
+
+demo analiz sonucu.
+
+<small>
+
+Trend:
+
+${(s.trend*100).toFixed(2)}%
+
+•
+
+Sinyal:
+
+${signal(s)}
+
+</small>
+
+</div>
+
+<div class="news">
+
+Gemini AI, seçili hisse ve demo piyasa verilerini analiz eder.
+
+<small>
+
+Gerçek yatırım tavsiyesi değildir.
+
+</small>
+
+</div>
+
+`;
+
+draw();
+
+}
+
+function draw(){
+
+const c=$("chart");
+
+const ctx=c.getContext("2d");
+
+const s=get(selected);
+
+const a=s.history;
+
+const w=c.clientWidth||700;
+
+const h=c.clientHeight||300;
+
+const d=window.devicePixelRatio||1;
+
+c.width=w*d;
+
+c.height=h*d;
+
+ctx.setTransform(d,0,0,d,0,0);
+
+ctx.clearRect(0,0,w,h);
+
+const min=Math.min(...a)*.997;
+
+const max=Math.max(...a)*1.003;
+
+const X=i=>
+
+8+i*(w-16)/
+
+Math.max(1,a.length-1);
+
+const Y=v=>
+
+10+
+
+(max-v)/(max-min||1)*(h-25);
+
+ctx.strokeStyle="#202a36";
+
+for(let i=0;i<5;i++){
+
+const y=
+
+10+i*(h-20)/4;
+
+ctx.beginPath();
+
+ctx.moveTo(0,y);
+
+ctx.lineTo(w,y);
+
+ctx.stroke();
+
+}
+
+if(chartType==="line"){
+
+ctx.beginPath();
+
+a.forEach((v,i)=>
+
+i
+
+?ctx.lineTo(X(i),Y(v))
+
+:ctx.moveTo(X(i),Y(v))
+
+);
+
+ctx.strokeStyle="#4b8dff";
+
+ctx.lineWidth=2.5;
+
+ctx.stroke();
+
+}else{
+
+for(let i=1;i<a.length;i++){
+
+const up=a[i]>=a[i-1];
+
+const x=X(i);
+
+const y=Y(a[i]);
+
+const yp=Y(a[i-1]);
+
+ctx.strokeStyle=
+
+up?"#19d18d":"#f05260";
+
+ctx.fillStyle=ctx.strokeStyle;
+
+ctx.beginPath();
+
+ctx.moveTo(x,y-7);
+
+ctx.lineTo(x,y+7);
+
+ctx.stroke();
+
+ctx.fillRect(
+
+x-3,
+
+Math.min(y,yp),
+
+6,
+
+Math.max(3,Math.abs(y-yp))
+
+);
+
+}
+
+}
+
+}
+
+function trade(action,symbol,reason){
+
+const s=get(symbol||selected);
+
+const qty=10;
+
+if(action==="AL"){
+
+if(cash<s.price*qty){
+
+setStatus(
+
+"<b>AI:</b> Sanal bakiye yetersiz.",
+
+"warn"
+
+);
+
+return false;
+
+}
+
+cash-=s.price*qty;
+
+positions[s.symbol]=
+
+(positions[s.symbol]||0)+qty;
+
+}else{
+
+if((positions[s.symbol]||0)<qty){
+
+setStatus(
+
+"<b>Satış:</b> Yeterli pozisyon yok.",
+
+"warn"
+
+);
+
+return false;
+
+}
+
+cash+=s.price*qty;
+
+positions[s.symbol]-=qty;
+
+}
+
+trades.push({
+
+action,
+
+symbol:s.symbol,
+
+qty,
+
+price:s.price,
+
+reason,
+
+time:new Date().toLocaleTimeString("tr-TR")
+
+});
+
+setStatus(
+
+`<b>${action==="AL"?"🟢 ALIŞ":"🔴 SATIŞ"}</b>
+
+— ${s.symbol} • ${money(s.price)} × ${qty}`,
+
+"ok"
+
+);
+
+render();
+
+return true;
+
+}
+
+/* GEMINI AI */
+
+async function askGemini(){
+
+const s=get(selected);
+
+if(!s){
+
+throw new Error("Seçili hisse bulunamadı.");
+
+}
+
+const marketData=all().map(x=>({
+
+symbol:x.symbol,
+
+name:x.name,
+
+price:Number(x.price.toFixed(2)),
+
+trend:Number((x.trend*100).toFixed(3)),
+
+signal:signal(x)
+
+}));
+
+const prompt=`
+
+Sen Türkçe konuşan bir borsa analiz asistanısın.
+
+Bu uygulamadaki tüm veriler DEMO verileridir.
+
+Gerçek zamanlı piyasa verisi değildir.
+
+Gerçek yatırım tavsiyesi verme.
+
+Seçili hisse:
+
+${JSON.stringify({
+
+symbol:s.symbol,
+
+name:s.name,
+
+price:Number(s.price.toFixed(2)),
+
+trend:Number((s.trend*100).toFixed(3)),
+
+signal:signal(s),
+
+history:s.history
+
+.slice(-20)
+
+.map(x=>Number(x.toFixed(2)))
+
+},null,2)}
+
+Piyasa verileri:
+
+${JSON.stringify(marketData,null,2)}
+
+Portföy:
+
+${JSON.stringify({
+
+cash,
+
+positions,
+
+portfolioValue:portfolioValue()
+
+},null,2)}
+
+Şu formatta Türkçe ve kısa cevap ver:
+
+KARAR: AL / SAT / TUT
+
+GÜVEN: 0-100
+
+ANALİZ: En fazla 3 kısa cümle.
+
+RİSK: DÜŞÜK / ORTA / YÜKSEK
+
+`;
+
+const response=
+
+await fetch("/api/chat",{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":"application/json"
+
+},
+
+body:JSON.stringify({
+
+message:prompt
+
+})
+
+});
+
+let data={};
+
+try{
+
+data=await response.json();
+
+}catch(e){
+
+throw new Error(
+
+"Sunucudan geçerli JSON cevabı alınamadı."
+
+);
+
+}
+
+if(!response.ok){
+
+throw new Error(
+
+data.error||
+
+data.message||
+
+"Gemini API isteği başarısız oldu."
+
+);
+
+}
+
+return (
+
+data.answer||
+
+data.reply||
+
+"Gemini AI yanıt oluşturamadı."
+
+);
+
+}
+
+function parseAI(text){
+
+const normalized=
+
+String(text).toUpperCase();
+
+let decision="TUT";
+
+if(
+
+/KARAR\s*:\s*AL\b/.test(normalized)
+
+){
+
+decision="AL";
+
+}else if(
+
+/KARAR\s*:\s*SAT\b/.test(normalized)
+
+){
+
+decision="SAT";
+
+}
+
+return{
+
+decision,
+
+text
+
+};
+
+}
+
+async function runRealAI(){
+
+if(aiRunning){
+
+return;
+
+}
+
+aiRunning=true;
+
+$("ai").classList.add("running");
+
+$("ai").textContent=
+
+"⏳ GEMINI ANALİZ EDİYOR...";
+
+setStatus(
+
+"<b>🤖 Gemini AI:</b> Analiz yapılıyor..."
+
+);
+
+$("decision").textContent=
+
+"Gemini AI analizi bekleniyor...";
+
+try{
+
+const result=
+
+await askGemini();
+
+const parsed=
+
+parseAI(result);
+
+const s=get(selected);
+
+$("decision").textContent=
+
+result;
+
+$("signal").textContent=
+
+parsed.decision;
+
+$("signal").className=
+
+"signal "+parsed.decision;
+
+if(parsed.decision==="AL"){
+
+setStatus(
+
+"<b>🤖 GEMINI KARARI:</b> AL — Demo analiz tamamlandı.",
+
+"ok"
+
+);
+
+}else if(parsed.decision==="SAT"){
+
+setStatus(
+
+"<b>🤖 GEMINI KARARI:</b> SAT — Demo analiz tamamlandı.",
+
+"warn"
+
+);
+
+}else{
+
+setStatus(
+
+"<b>🤖 GEMINI KARARI:</b> TUT — Demo analiz tamamlandı."
+
+);
+
+}
+
+$("news").innerHTML=`
+
+<div class="news">
+
+<b>🤖 Gemini AI Analizi — ${s.symbol}</b>
+
+<br><br>
+
+${String(result)
+
+.replace(/&/g,"&amp;")
+
+.replace(/</g,"&lt;")
+
+.replace(/>/g,"&gt;")
+
+.replace(/\n/g,"<br>")}
+
+</div>
+
+<div class="news">
+
+<b>⚠️ Demo Uyarısı</b>
+
+<small>
+
+Bu analiz yalnızca demo amaçlıdır ve yatırım tavsiyesi değildir.
+
+</small>
+
+</div>
+
+`;
+
+}catch(error){
+
+console.error(
+
+"Gemini API Hatası:",
+
+error
+
+);
+
+$("decision").textContent=
+
+"Gemini bağlantısı kurulamadı: "+
+
+error.message;
+
+setStatus(
+
+"<b>❌ Gemini AI Hatası:</b> "+
+
+error.message,
+
+"warn"
+
+);
+
+}finally{
+
+aiRunning=false;
+
+$("ai").classList.remove("running");
+
+$("ai").textContent=
+
+"🤖 GEMINI AI ANALİZİ";
+
+}
+
+}
+
+function tick(){
+
+all().forEach(s=>{
+
+s.price=Math.max(
+
+.01,
+
+s.price*
+
+(
+
+1+
+
+s.trend/40+
+
+(Math.random()-.5)*.004
+
+)
+
+);
+
+s.history.push(s.price);
+
+if(s.history.length>100){
+
+s.history.shift();
+
+}
+
+});
+
+if(!aiRunning){
+
+render();
+
+}
+
+}
+
+function reset(){
+
+aiRunning=false;
+
+cash=100000;
+
+positions={};
+
+trades=[];
+
+all().forEach(s=>{
+
+s.history=[s.price];
+
+});
+
+setStatus(
+
+"<b>Demo:</b> Sıfırlandı."
+
+);
+
+$("decision").textContent=
+
+"Henüz analiz yapılmadı.";
+
+render();
+
+}
+
+$("ai").onclick=
+
+runRealAI;
+
+$("aiNav").onclick=()=>{
+
+window.scrollTo({
+
+top:0,
+
+behavior:"smooth"
+
+});
+
+runRealAI();
+
+};
+
+$("buy").onclick=()=>{
+
+trade(
+
+"AL",
+
+selected,
+
+"Manuel sanal alış."
+
+);
+
+};
+
+$("sell").onclick=()=>{
+
+trade(
+
+"SAT",
+
+selected,
+
+"Manuel sanal satış."
+
+);
+
+};
+
+$("reset").onclick=
+
+reset;
+
+$("resetNav").onclick=
+
+reset;
+
+document
+
+.querySelectorAll("[data-market]")
+
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+market=
+
+btn.dataset.market;
+
+selected=
+
+list()[0].symbol;
+
+document
+
+.querySelectorAll(".market")
+
+.forEach(x=>
+
+x.classList.remove("active")
+
+);
+
+btn.classList.add("active");
+
+render();
+
+};
+
+});
+
+document
+
+.querySelectorAll("[data-chart]")
+
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+chartType=
+
+btn.dataset.chart;
+
+document
+
+.querySelectorAll("[data-chart]")
+
+.forEach(x=>
+
+x.classList.remove("active")
+
+);
+
+btn.classList.add("active");
+
+draw();
+
+};
+
+});
+
+$("search").oninput=e=>{
+
+const q=
+
+e.target.value
+
+.toUpperCase()
+
+.trim();
+
+if(!q)return;
+
+const s=
+
+all().find(x=>
+
+x.symbol.includes(q)||
+
+x.name
+
+.toUpperCase()
+
+.includes(q)
+
+);
+
+if(s){
+
+selected=s.symbol;
+
+market=
+
+Object.keys(stocks)
+
+.find(m=>
+
+stocks[m]
+
+.some(x=>
+
+x.symbol===s.symbol
+
+)
+
+);
+
+document
+
+.querySelectorAll(".market")
+
+.forEach(btn=>{
+
+btn.classList.toggle(
+
+"active",
+
+btn.dataset.market===market
+
+);
+
+});
+
+render();
+
+}
+
+};
+
+$("homeNav").onclick=()=>{
+
+window.scrollTo({
+
+top:0,
+
+behavior:"smooth"
+
+});
+
+};
+
+$("marketNav").onclick=()=>{
+
+document
+
+.querySelector(".tablewrap")
+
+.scrollIntoView({
+
+behavior:"smooth"
+
+});
+
+};
+
+window.addEventListener(
+
+"resize",
+
+draw
+
+);
+
+render();
+
+setInterval(
+
+tick,
+
+1000
+
+);
+
+})();
+
+</script></body>
+</html>
