@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="tr">
+<!DOCTYPE html><html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -23,19 +22,13 @@ main{max-width:1200px;margin:auto;padding:12px}.ticker{display:flex;gap:8px;over
 <header class="top">
 <div class="logo">Borsa <span>AI</span></div>
 <input id="search" class="search" placeholder="Hisse ara...">
-<div class="live">● DEMO</div>
-</header>
-
-<nav class="markets">
+<div class="live">● AI ONLINE</div>
+</header><nav class="markets">
 <button class="market active" data-market="BIST">🇹🇷 BIST</button>
 <button class="market" data-market="NASDAQ">🇺🇸 NASDAQ</button>
 <button class="market" data-market="NYSE">🇺🇸 NYSE</button>
-</nav>
-
-<main>
-<div id="ticker" class="ticker"></div>
-
-<div class="grid">
+</nav><main>
+<div id="ticker" class="ticker"></div><div class="grid">
 <section>
 <div class="panel">
 <div class="head">
@@ -50,15 +43,11 @@ main{max-width:1200px;margin:auto;padding:12px}.ticker{display:flex;gap:8px;over
 <button class="reset" id="reset">↺ SIFIRLA</button>
 <div id="status" class="status"><b>Hazır.</b> AI'yı başlatabilirsin.</div>
 </div>
-</div>
-
-<div class="panel">
+</div><div class="panel">
 <div class="head"><div><h2>Piyasa Akışı</h2><div class="muted">Demo fiyatları otomatik hareket eder</div></div></div>
 <div class="tablewrap"><table class="table"><thead><tr><th>Hisse</th><th>Şirket</th><th>Fiyat</th><th>Değişim</th><th>AI</th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
-</section>
-
-<aside class="right">
+</section><aside class="right">
 <div class="panel">
 <div id="signal" class="signal TUT">TUT</div>
 <div class="metrics">
@@ -67,30 +56,22 @@ main{max-width:1200px;margin:auto;padding:12px}.ticker{display:flex;gap:8px;over
 <div class="metric"><small>K/Z</small><b id="pnl">₺0</b></div>
 <div class="metric"><small>Pozisyon</small><b id="qty">0</b></div>
 </div>
-</div>
-
-<div class="panel">
+</div><div class="panel">
 <div class="decision"><b>🤖 AI Kararı</b><br><span id="decision">Henüz analiz yapılmadı.</span></div>
 <div class="head"><h2>İşlem Günlüğü</h2></div>
 <div id="log" class="log"><div class="logitem">Henüz işlem yok.</div></div>
-</div>
-
-<div class="panel">
-<div class="head"><h2>📰 Demo Haber / Analiz</h2></div>
+</div><div class="panel">
+<div class="head"><h2>📰 AI Haber / Analiz</h2></div>
 <div id="news"></div>
 </div>
 </aside>
 </div>
-</main>
-
-<nav class="bottom">
+</main><nav class="bottom">
 <button class="active" id="homeNav">⌂<br>Ana Sayfa</button>
 <button id="marketNav">▥<br>Piyasalar</button>
 <button id="aiNav">🤖<br>AI</button>
 <button id="resetNav">↺<br>Sıfırla</button>
-</nav>
-
-<script>
+</nav><script>
 (function(){
 "use strict";
 
@@ -191,7 +172,7 @@ function render(){
  $("news").innerHTML=`
  <div class="news"><b>${s.name}</b> demo analiz sonucu.
  <small>Trend: ${(s.trend*100).toFixed(2)}% • Sinyal: ${signal(s)}</small></div>
- <div class="news">AI, demo trend ve momentum skoruna göre karar verir.
+ <div class="news">AI analizleri Vercel backend üzerinden OpenAI API ile yapılır.
  <small>Gerçek yatırım tavsiyesi değildir.</small></div>`;
 
  draw();
@@ -262,68 +243,202 @@ function trade(action,symbol,reason){
  return true;
 }
 
+/* =========================================================
+   GERÇEK AI API BAĞLANTISI
+   Vercel: /api/chat
+   API anahtarı frontend'e gönderilmez.
+========================================================= */
+
+async function askAI(){
+ const selectedStock=get(selected);
+
+ if(!selectedStock){
+  throw new Error("Seçili hisse bulunamadı.");
+ }
+
+ const portfolio={
+  cash:cash,
+  positions:positions,
+  portfolioValue:portfolioValue()
+ };
+
+ const marketData=all().map(s=>({
+  symbol:s.symbol,
+  name:s.name,
+  price:Number(s.price.toFixed(2)),
+  trend:Number((s.trend*100).toFixed(3)),
+  signal:signal(s)
+ }));
+
+ const prompt=`
+Sen Türkçe konuşan bir borsa analiz asistanısın.
+
+Aşağıdaki veriler DEMO verileridir. Gerçek zamanlı piyasa verisi değildir.
+Gerçek yatırım tavsiyesi verme. Analizini kısa ve anlaşılır şekilde yap.
+
+SEÇİLİ HİSSE:
+${JSON.stringify({
+ symbol:selectedStock.symbol,
+ name:selectedStock.name,
+ price:Number(selectedStock.price.toFixed(2)),
+ trend:Number((selectedStock.trend*100).toFixed(3)),
+ signal:signal(selectedStock),
+ history:selectedStock.history.slice(-20).map(x=>Number(x.toFixed(2)))
+},null,2)}
+
+PİYASA VERİLERİ:
+${JSON.stringify(marketData,null,2)}
+
+PORTFÖY:
+${JSON.stringify(portfolio,null,2)}
+
+Şu formatta cevap ver:
+
+KARAR: AL / SAT / TUT
+GÜVEN: 0-100
+ANALİZ: En fazla 3 kısa cümle.
+RİSK: DÜŞÜK / ORTA / YÜKSEK
+`;
+
+ const response=await fetch("/api/chat",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json"
+  },
+  body:JSON.stringify({
+   message:prompt,
+   symbol:selectedStock.symbol,
+   market:market,
+   data:{
+    selected:selectedStock,
+    marketData,
+    portfolio
+   }
+  })
+ });
+
+ if(!response.ok){
+  let errorText="API isteği başarısız oldu.";
+  try{
+   const errorData=await response.json();
+   errorText=errorData.error||errorData.message||errorText;
+  }catch(e){}
+  throw new Error(errorText);
+ }
+
+ const data=await response.json();
+
+ return data.reply||
+        data.message||
+        data.content||
+        data.output||
+        "AI'dan geçerli bir analiz cevabı alınamadı.";
+}
+
+function parseAI(text){
+ const normalized=text.toUpperCase();
+
+ let decision="TUT";
+
+ if(/\bKARAR\s*:\s*AL\b/.test(normalized)||
+    normalized.includes("KARAR: AL")){
+  decision="AL";
+ }else if(/\bKARAR\s*:\s*SAT\b/.test(normalized)||
+          normalized.includes("KARAR: SAT")){
+  decision="SAT";
+ }else if(normalized.includes("GÜÇLÜ AL")){
+  decision="AL";
+ }else if(normalized.includes("GÜÇLÜ SAT")){
+  decision="SAT";
+ }
+
+ return {
+  decision,
+  text:text
+ };
+}
+
+async function runRealAI(){
+ if(aiRunning){
+  stopAI();
+  return;
+ }
+
+ aiRunning=true;
+ $("ai").classList.add("running");
+ $("ai").textContent="⏳ AI ANALİZ EDİYOR...";
+
+ setStatus("<b>🤖 AI:</b> Vercel backend üzerinden analiz yapılıyor...");
+ $("decision").textContent="OpenAI analizi bekleniyor...";
+
+ try{
+  const result=await askAI();
+  const parsed=parseAI(result);
+
+  $("decision").textContent=result;
+
+  const s=get(selected);
+  $("signal").textContent=parsed.decision;
+  $("signal").className="signal "+parsed.decision;
+
+  if(parsed.decision==="AL"){
+   setStatus("<b>🤖 AI KARARI:</b> AL — Demo işlem yapmak için sanal alış butonunu kullanabilirsin.","ok");
+  }else if(parsed.decision==="SAT"){
+   setStatus("<b>🤖 AI KARARI:</b> SAT — Demo işlem yapmak için sanal satış butonunu kullanabilirsin.","warn");
+  }else{
+   setStatus("<b>🤖 AI KARARI:</b> TUT — AI işlem yapmama yönünde.","");
+  }
+
+  $("news").innerHTML=`
+   <div class="news">
+    <b>🤖 AI Analizi — ${s.symbol}</b>
+    <small>${result.replace(/\n/g,"<br>")}</small>
+   </div>
+   <div class="news">
+    <b>⚠️ Demo Uyarısı</b>
+    <small>Bu analiz yalnızca demo amaçlıdır ve yatırım tavsiyesi değildir.</small>
+   </div>
+  `;
+
+ }catch(error){
+  console.error("AI API Hatası:",error);
+
+  $("decision").textContent=
+   "AI bağlantısı kurulamadı: "+error.message;
+
+  setStatus(
+   "<b>❌ AI Hatası:</b> "+error.message+
+   "<br><small>Vercel /api/chat endpoint'ini ve OPENAI_API_KEY değişkenini kontrol et.</small>",
+   "warn"
+  );
+
+ }finally{
+  aiRunning=false;
+  $("ai").classList.remove("running");
+  $("ai").textContent="🤖 AI ANALİZİ YAP";
+  render();
+ }
+}
+
 function chooseAIStock(){
  return all().slice().sort((a,b)=>
   (b.trend+Math.random()*.002)-(a.trend+Math.random()*.002)
  )[0];
 }
 
-function aiStep(){
- if(!aiRunning)return;
-
- const open=Object.keys(positions).find(k=>positions[k]>0);
-
- if(open){
-  const s=get(open);
-  const buy=trades.filter(t=>t.symbol===open&&t.action==="AL").at(-1);
-  const gain=(s.price-(buy?buy.price:s.price))/(buy?buy.price:s.price);
-
-  $("decision").textContent=
-   `${s.symbol} izleniyor • Alış ${money(buy?buy.price:s.price)} • Anlık ${money(s.price)}`;
-
-  if(gain>=.012||signal(s)==="SAT"){
-   selected=open;
-   trade("SAT",open,
-   `AI pozisyonu kapattı. Alış ${money(buy.price)}, satış ${money(s.price)}.`);
-  }else render();
-
- }else{
-  const s=chooseAIStock();
-  selected=s.symbol;
-
-  $("decision").textContent=
-   `AI seçimi: ${s.symbol} — ${s.name}. Güçlü trend bulundu.`;
-
-  if(signal(s)==="AL"){
-   trade("AL",s.symbol,
-   `AI piyasaları taradı ve güçlü trend nedeniyle ${s.symbol} seçti.`);
-  }else{
-   setStatus("<b>AI:</b> Güçlü AL sinyali bulunamadı.","warn");
-   render();
-  }
- }
-}
+/*
+ Eski otomatik demo AI sistemi kaldırıldı.
+ Artık AI butonu gerçek /api/chat endpoint'ine gider.
+*/
 
 function startAI(){
- if(aiRunning){stopAI();return}
-
- aiRunning=true;
- $("ai").classList.add("running");
- $("ai").textContent="⏳ AI ÇALIŞIYOR — DURDUR";
-
- setStatus("<b>AI:</b> BIST, NASDAQ ve NYSE taranıyor...");
- $("decision").textContent="Piyasalar analiz ediliyor...";
-
- aiStep();
- aiTimer=setInterval(aiStep,2500);
+ runRealAI();
 }
 
 function stopAI(){
  aiRunning=false;
- clearInterval(aiTimer);
- aiTimer=null;
  $("ai").classList.remove("running");
- $("ai").textContent="🤖 AI'YI BAŞLAT";
+ $("ai").textContent="🤖 AI ANALİZİ YAP";
  setStatus("<b>AI:</b> Durduruldu.");
  $("decision").textContent="AI beklemede.";
  render();
@@ -351,9 +466,23 @@ function reset(){
 }
 
 $("ai").onclick=startAI;
-$("aiNav").onclick=()=>{window.scrollTo({top:0,behavior:"smooth"});if(!aiRunning)startAI()};
-$("buy").onclick=()=>trade("AL",selected,"Manuel sanal alış.");
-$("sell").onclick=()=>trade("SAT",selected,"Manuel sanal satış.");
+$("aiNav").onclick=()=>{
+ window.scrollTo({top:0,behavior:"smooth"});
+ startAI();
+};
+
+$("buy").onclick=()=>trade(
+ "AL",
+ selected,
+ "Manuel sanal alış."
+);
+
+$("sell").onclick=()=>trade(
+ "SAT",
+ selected,
+ "Manuel sanal satış."
+);
+
 $("reset").onclick=reset;
 $("resetNav").onclick=reset;
 
@@ -361,7 +490,10 @@ document.querySelectorAll("[data-market]").forEach(btn=>{
  btn.onclick=()=>{
   market=btn.dataset.market;
   selected=list()[0].symbol;
-  document.querySelectorAll(".market").forEach(x=>x.classList.remove("active"));
+
+  document.querySelectorAll(".market")
+   .forEach(x=>x.classList.remove("active"));
+
   btn.classList.add("active");
   render();
  };
@@ -370,7 +502,10 @@ document.querySelectorAll("[data-market]").forEach(btn=>{
 document.querySelectorAll("[data-chart]").forEach(btn=>{
  btn.onclick=()=>{
   chartType=btn.dataset.chart;
-  document.querySelectorAll("[data-chart]").forEach(x=>x.classList.remove("active"));
+
+  document.querySelectorAll("[data-chart]")
+   .forEach(x=>x.classList.remove("active"));
+
   btn.classList.add("active");
   draw();
  };
@@ -378,23 +513,44 @@ document.querySelectorAll("[data-chart]").forEach(btn=>{
 
 $("search").oninput=e=>{
  const q=e.target.value.toUpperCase().trim();
+
  if(!q)return;
- const s=all().find(x=>x.symbol.includes(q)||x.name.toUpperCase().includes(q));
+
+ const s=all().find(x=>
+  x.symbol.includes(q)||
+  x.name.toUpperCase().includes(q)
+ );
+
  if(s){
   selected=s.symbol;
-  market=Object.keys(stocks).find(m=>stocks[m].some(x=>x.symbol===s.symbol));
+
+  market=Object.keys(stocks).find(m=>
+   stocks[m].some(x=>x.symbol===s.symbol)
+  );
+
+  document.querySelectorAll(".market").forEach(btn=>{
+   btn.classList.toggle(
+    "active",
+    btn.dataset.market===market
+   );
+  });
+
   render();
  }
 };
 
-$("homeNav").onclick=()=>window.scrollTo({top:0,behavior:"smooth"});
-$("marketNav").onclick=()=>document.querySelector(".tablewrap").scrollIntoView({behavior:"smooth"});
+$("homeNav").onclick=()=>
+ window.scrollTo({top:0,behavior:"smooth"});
+
+$("marketNav").onclick=()=>
+ document.querySelector(".tablewrap")
+ .scrollIntoView({behavior:"smooth"});
 
 window.addEventListener("resize",draw);
+
 render();
 setInterval(tick,1000);
 
 })();
-</script>
-</body>
+</script></body>
 </html>
